@@ -8,8 +8,13 @@ namespace DatabaseManagement
 {
     public class ProductModel
     {
-        public int ID { get; set; }
         public string Name { get; set; }
         public int CategoryID { get; set; }
+
+        public ProductModel(string name, int id)
+        {
+            Name = name;
+            CategoryID = id;
+        }
     }
 }

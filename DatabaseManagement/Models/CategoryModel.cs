@@ -8,7 +8,10 @@ namespace DatabaseManagement
 {
     public class CategoryModel
     {
-        public int ID { get; set; }
-        public int Name { get; set; }
+        public string Name { get; set; }
+        public CategoryModel(string name)
+        {
+            Name = name;
+        }
     }
 }

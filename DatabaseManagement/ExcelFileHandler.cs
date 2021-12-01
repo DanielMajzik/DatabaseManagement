@@ -11,15 +11,16 @@ namespace DatabaseManagement
 {
     public class ExcelFileHandler
     {
-        ExcelPackage package = null;
+        public ExcelPackage Package { get; set; }
         public ExcelFileHandler()
         {
+            Package = null;
             ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
         }
 
         public bool IsFileOpen()
         {
-            return package != null;
+            return Package != null;
         }
 
         public void OpenWorkbook(string fileName)
@@ -27,8 +28,8 @@ namespace DatabaseManagement
             try
             {
                 FileInfo file = new(fileName);
-                package = new ExcelPackage(file);
-                package.LoadAsync(file);
+                Package = new ExcelPackage(file);
+                Package.LoadAsync(file);
             } catch (Exception e)
             {
                 MessageBox.Show(e.ToString(), "File error", MessageBoxButton.OK, MessageBoxImage.Error, MessageBoxResult.OK);
@@ -39,10 +40,10 @@ namespace DatabaseManagement
 
         public List<List<string>> ReadWorksheet(string sheetName)
         {
-            if (package != null)
+            if (Package != null)
             {
                 List<List<string>> records = new();
-                ExcelWorksheet worksheet = package.Workbook.Worksheets[sheetName];
+                ExcelWorksheet worksheet = Package.Workbook.Worksheets[sheetName];
 
                 if (worksheet != null)
                 {

@@ -22,23 +22,37 @@ namespace DatabaseManagement
 
         public void CreateTable(string tableName, string[] fieldNames, string[] fieldTypes)
         {
+            /*
+             * Drop table
+             * */
+
+            string dropTableString = $"DROP TABLE if exists [dbo].[{tableName}]";
+            try
+            {
+                /* 
+                 * Run query
+                 * */
+                SqlCommand command = new(dropTableString, Connection);
+                command.ExecuteNonQuery();
+
+            }
+            catch (SqlException e)
+            {
+                Console.WriteLine(e.ToString());
+                MessageBox.Show(e.ToString(), $"DROP TABLE {tableName} ERROR", MessageBoxButton.OK, MessageBoxImage.Error, MessageBoxResult.OK);
+            }
+
             /* 
              * Create SQL string
              * */
-            string sqlString =
-                $"IF NOT EXISTS " +
-                $"( SELECT [NAME] " +
-                $"FROM SYS.TABLES " +
-                $"WHERE [NAME] = {tableName}" +
-                $"CREATE TABLE {tableName} (";
+            string sqlString = $"CREATE TABLE {tableName} (ID int IDENTITY(1,1) PRIMARY KEY,";
 
             for (int i = 0; i < fieldNames.Length; i++)
             {
-                sqlString += $"{fieldNames} {fieldTypes},";
+                sqlString += $"{fieldNames[i]} {fieldTypes[i]},";
             }
             sqlString = sqlString.Remove(sqlString.Length - 1, 1);
             sqlString += ')';
-            MessageBox.Show(sqlString, "SQL string value", MessageBoxButton.OK, MessageBoxImage.Information, MessageBoxResult.OK);
 
             try
             {
@@ -51,7 +65,7 @@ namespace DatabaseManagement
             }
             catch (SqlException e)
             {
-                MessageBox.Show(e.ToString(), "SQL string value", MessageBoxButton.OK, MessageBoxImage.Error, MessageBoxResult.OK);
+                MessageBox.Show(e.ToString(), $"CERATE TABLE {tableName} ERROR", MessageBoxButton.OK, MessageBoxImage.Error, MessageBoxResult.OK);
             }
         }
         public List<object[]> QueryAllRecords(string tableName, string[] fields)
@@ -108,7 +122,7 @@ namespace DatabaseManagement
 
         }
 
-        public int InsertRecord(string table, string[] fieldNames, string[] fieldValues)
+        public int InsertRecord(string table, string[] fieldNames, string[] fieldValues, string[] fieldTypes)
         {
             /* 
              * Create SQL string
@@ -119,16 +133,21 @@ namespace DatabaseManagement
                 sqlString += $"{fieldName},";
             }
             sqlString = sqlString.Remove(sqlString.Length - 1, 1);
-            sqlString += ") VALUES(";
+            sqlString += ") VALUES (";
 
-            foreach (string fieldValue in fieldValues)
+            for (int i = 0; i < fieldValues.Length; i++)
             {
-                sqlString += $"{fieldValue},";
+                if (fieldTypes[i].Contains("char"))
+                {
+                    sqlString += $"'{fieldValues[i]}',";
+                }
+                else
+                {
+                    sqlString += $"{fieldValues[i]},";
+                }
             }
             sqlString = sqlString.Remove(sqlString.Length - 1, 1);
             sqlString += ")";
-
-            MessageBox.Show(sqlString, "SQL string value", MessageBoxButton.OK, MessageBoxImage.Error, MessageBoxResult.OK);
 
             try
             {
@@ -148,7 +167,7 @@ namespace DatabaseManagement
             }
             catch (SqlException e)
             {
-                MessageBox.Show(e.ToString(), "SQL string value", MessageBoxButton.OK, MessageBoxImage.Error, MessageBoxResult.OK);
+                MessageBox.Show(e.ToString(), "INSERT SQL command ERROR", MessageBoxButton.OK, MessageBoxImage.Error, MessageBoxResult.OK);
                 return 0;
             }
         }
@@ -165,8 +184,6 @@ namespace DatabaseManagement
             }
             sqlString = sqlString.Remove(sqlString.Length - 1, 1);
             sqlString += $"WHERE {fieldNames[0]}={fieldValues[0]}";
-
-            MessageBox.Show(sqlString, "SQL string value", MessageBoxButton.OK, MessageBoxImage.Error, MessageBoxResult.OK);
 
             try
             {
@@ -197,8 +214,6 @@ namespace DatabaseManagement
              * Create SQL string
              * */
             string sqlString = $"DELETE {table} WHERE {idName}={ID}";
-
-            MessageBox.Show(sqlString, "SQL string value", MessageBoxButton.OK, MessageBoxImage.Error, MessageBoxResult.OK);
 
             try
             {
@@ -259,19 +274,19 @@ namespace DatabaseManagement
                 Connection.Open();
                 return true;
             }
-            catch (SqlException e)
+            catch (SqlException)
             {
-                MessageBox.Show(e.ToString(), "SQL Connect Error 1", MessageBoxButton.OK, MessageBoxImage.Error, MessageBoxResult.OK);
+                MessageBox.Show("Can't connect to database.", "SQL Connect Error", MessageBoxButton.OK, MessageBoxImage.Error, MessageBoxResult.OK);
                 return false;
             }
-            catch (InvalidOperationException e)
+            catch (InvalidOperationException)
             {
-                MessageBox.Show(e.ToString(), "SQL Conect Error 2", MessageBoxButton.OK, MessageBoxImage.Error, MessageBoxResult.OK);
+                MessageBox.Show("Invalid Operation", "SQL Conect Error", MessageBoxButton.OK, MessageBoxImage.Error, MessageBoxResult.OK);
                 return false;
             }
-            catch (ConfigurationErrorsException e)
+            catch (ConfigurationErrorsException)
             {
-                MessageBox.Show(e.ToString(), "SQL Connect Error3", MessageBoxButton.OK, MessageBoxImage.Error, MessageBoxResult.OK);
+                MessageBox.Show("Configuration Error", "SQL Connect Error", MessageBoxButton.OK, MessageBoxImage.Error, MessageBoxResult.OK);
                 return false;
             }
         }

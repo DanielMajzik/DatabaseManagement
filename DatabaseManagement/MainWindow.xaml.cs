@@ -1,20 +1,6 @@
 ﻿using Microsoft.Win32;
-using System;
-using System.Collections.Generic;
-using System.Data.SqlClient;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
 
 namespace DatabaseManagement
 {
@@ -23,7 +9,8 @@ namespace DatabaseManagement
     /// </summary>
     public partial class MainWindow : Window
     {
-        readonly SqlConnectionManager ConnectionManager = new();
+        private readonly SqlConnectionManager ConnectionManager = new();
+        private ReadExcelIntoModel ExcelIntoModel = null;
         public MainWindow()
         {
             InitializeComponent();
@@ -35,30 +22,7 @@ namespace DatabaseManagement
             if (openFileDialog.ShowDialog() == true)
             {
                 SourceFileNameBox.Text = openFileDialog.FileName;
-
-                ExcelFileHandler excelFileHandler = new();
-                excelFileHandler.OpenWorkbook(SourceFileNameBox.Text);
-
-                if (excelFileHandler.IsFileOpen())
-                {
-                    var worksheetData = excelFileHandler.ReadWorksheet("Product");
-
-                    string listToWrite = "";
-
-                    if (worksheetData != null)
-                    {
-                        foreach (var list in worksheetData)
-                        {
-                            foreach (var element in list)
-                            {
-                                listToWrite += element + '\t';
-                            }
-                            listToWrite += '\n';
-                        }
-
-                        MessageBox.Show(listToWrite, "Data Read from excel", MessageBoxButton.OK, MessageBoxImage.Error, MessageBoxResult.OK);
-                    }
-                }
+                ExcelIntoModel = new(SourceFileNameBox.Text);
             }
         }
 
@@ -73,40 +37,150 @@ namespace DatabaseManagement
 
         private void UploadButton_Click(object sender, RoutedEventArgs e)
         {
-            if (!File.Exists(SourceFileNameBox.Text))
+            if (ExcelIntoModel != null)
             {
-                // TODO
-                SourceFileNameBox.Text = "Error 404. You are an IDIOT! No such file exists.";
-                return;
-            }
-            else
-            {
-                if ((bool)WebshopButton.IsChecked)
+                if (ConnectionManager.IsConnected())
                 {
-                    // TODO
-                    SourceFileNameBox.Text = "Webshop data updated";
-                }
-                else
-                {
-                    if ((bool)CategoryButton.IsChecked)
+                    if ((bool)WebshopButton.IsChecked)
                     {
-                        // TODO
-                        SourceFileNameBox.Text = "Category data updated";
+                        string[] webshopFields = { "NAME", "URL" };
+                        string[] webshopTypes = { "nvarchar(255)", "nvarchar(255)" };
+                        string[] webshopValues = new string[2];
+                        ConnectionManager.CreateTable("WEBSHOP", webshopFields, webshopTypes);
+                        var webshops = ExcelIntoModel.ReadWebshops();
+
+                        if (webshops.Count == 0)
+                        {
+                            MessageBoxResult result = MessageBox.Show(
+                                    "Empty list of data. Overwrite existing data?",
+                                    "Warning",
+                                    MessageBoxButton.YesNo,
+                                    MessageBoxImage.Warning,
+                                    MessageBoxResult.No);
+                            if (result == MessageBoxResult.No)
+                            {
+                                return;
+                            }
+                        }
+
+                        foreach (var webshop in webshops)
+                        {
+                            webshopValues[0] = webshop.Name;
+                            webshopValues[1] = webshop.URL;
+                            ConnectionManager.InsertRecord("WEBSHOP", webshopFields, webshopValues, webshopTypes);
+                        }
+                        MessageBox.Show(
+                                    "Webshop data updated",
+                                    "Success",
+                                    MessageBoxButton.OK,
+                                    MessageBoxImage.Information,
+                                    MessageBoxResult.OK);
                     }
                     else
                     {
-                        if ((bool)ProductButton.IsChecked)
+                        if ((bool)CategoryButton.IsChecked)
                         {
-                            // TODO
-                            SourceFileNameBox.Text = "Item data updated";
+                            string[] categoryFields = { "NAME" };
+                            string[] categoryTypes = { "nvarchar(255)" };
+                            string[] categoryValues = new string[1];
+                            ConnectionManager.CreateTable("CATEGORY", categoryFields, categoryTypes);
+                            var categories = ExcelIntoModel.ReadCategories();
+
+                            if (categories.Count == 0)
+                            {
+                                MessageBoxResult result = MessageBox.Show(
+                                        "Empty list of data. Overwrite existing data?",
+                                        "Warning",
+                                        MessageBoxButton.YesNo,
+                                        MessageBoxImage.Warning,
+                                        MessageBoxResult.No);
+                                if (result == MessageBoxResult.No)
+                                {
+                                    return;
+                                }
+                            }
+
+                            foreach (var category in categories)
+                            {
+                                categoryValues[0] = category.Name;
+                                ConnectionManager.InsertRecord("CATEGORY", categoryFields, categoryValues, categoryTypes);
+                            }
+
+                            MessageBox.Show(
+                                    "Category data updated",
+                                    "Success",
+                                    MessageBoxButton.OK,
+                                    MessageBoxImage.Information,
+                                    MessageBoxResult.OK);
                         }
                         else
                         {
-                            // TODO
-                            SourceFileNameBox.Text = "Please, select the destionation database.";
+                            if ((bool)ProductButton.IsChecked)
+                            {
+                                string[] productFields = { "NAME", "CATEGORY_ID" };
+                                string[] productTypes = { "nvarchar(255)", "int" };
+                                string[] productValues = new string[2];
+                                ConnectionManager.CreateTable("PRODUCT", productFields, productTypes);
+                                var products = ExcelIntoModel.ReadProducts();
+
+                                if (products.Count == 0)
+                                {
+                                    MessageBoxResult result = MessageBox.Show(
+                                            "Empty list of data. Overwrite existing data?",
+                                            "Warning",
+                                            MessageBoxButton.YesNo,
+                                            MessageBoxImage.Warning,
+                                            MessageBoxResult.No);
+                                    if (result == MessageBoxResult.No)
+                                    {
+                                        return;
+                                    }
+                                }
+
+                                foreach (var product in products)
+                                {
+                                    productValues[0] = product.Name;
+                                    productValues[1] = product.CategoryID.ToString();
+                                    ConnectionManager.InsertRecord("PRODUCT", productFields, productValues, productTypes);
+                                }
+
+                                MessageBox.Show(
+                                    "Product data updated",
+                                    "Success",
+                                    MessageBoxButton.OK,
+                                    MessageBoxImage.Information,
+                                    MessageBoxResult.OK);
+                            }
+                            else
+                            {
+                                MessageBox.Show(
+                                    "Please, select the destionation table.",
+                                    "Attention",
+                                    MessageBoxButton.OK,
+                                    MessageBoxImage.Exclamation,
+                                    MessageBoxResult.OK);
+                            }
                         }
                     }
                 }
+                else
+                {
+                    MessageBox.Show(
+                                "Please, connect to the database.",
+                                "Error",
+                                MessageBoxButton.OK,
+                                MessageBoxImage.Error,
+                                MessageBoxResult.OK);
+                }
+            }
+            else
+            {
+                MessageBox.Show(
+                                "Please, select the spreadsheet.",
+                                "Error",
+                                MessageBoxButton.OK,
+                                MessageBoxImage.Error,
+                                MessageBoxResult.OK);
             }
         }
 
